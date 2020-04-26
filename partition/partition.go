@@ -13,14 +13,20 @@ import (
 )
 
 var confFile string
+var srcDir string
 var outDir string
 var step int
 
 func init() {
 	flag.IntVar(&step, "step", 3, fmt.Sprintf("step value for partition"))
-	flag.StringVar(&confFile, "conf", "./conf", fmt.Sprintf("config dir "))
-	flag.StringVar(&outDir, "out", "./out", fmt.Sprintf("output dir"))
+	flag.StringVar(&confFile, "c", "./", fmt.Sprintf("config dir "))
+	flag.StringVar(&srcDir, "s", "./", fmt.Sprintf("srcfile dir "))
+	flag.StringVar(&outDir, "o", "./out", fmt.Sprintf("output dir"))
 	flag.Parse()
+
+	if srcDir == outDir {
+		panic(fmt.Sprintf("%v same as %v", srcDir, outDir))
+	}
 }
 
 // type Point struct {
@@ -41,7 +47,7 @@ func loadJSON(name string) (data map[string]image.Point, err error) {
 	return
 }
 
-func saveJSON(name string, data map[string]image.Point) (err error) {
+func saveJSON(name string, data interface{}) (err error) {
 	bts, err := json.Marshal(data)
 	if err != nil {
 		return
@@ -103,6 +109,10 @@ func loadImgPoints(name string) (points map[image.Point]color.RGBA, err error) {
 	return
 }
 
+func log(file os.File, data string) {
+
+}
+
 func main() {
 	data, err := loadJSON(confFile)
 	if err != nil {
@@ -110,9 +120,14 @@ func main() {
 	}
 
 	ext := ".png"
-	outputJSON := make(map[string]image.Point)
+	outputJSON := make(map[string]string)
 	for srcName, srcPoint := range data {
-		points, err := loadImgPoints(srcName + ext)
+		if srcPoint.X == 0 || srcPoint.Y == 0 {
+			fmt.Printf("invalid point %v-%v\n", srcName, srcPoint)
+			continue
+		}
+
+		points, err := loadImgPoints(path.Join(srcDir, srcName+ext))
 		if err != nil {
 			panic(fmt.Sprintf("load img point err %v", err))
 		}
@@ -137,14 +152,11 @@ func main() {
 			}
 
 			pos := imgData.Pos()
-			outputJSON[itemName] = image.Point{
-				X: srcLeft + pos.X,
-				Y: srcTop + pos.Y,
-			}
+			outputJSON[itemName] = fmt.Sprintf("%d,%d", srcLeft+pos.X, srcTop+pos.Y)
 		}
 	}
 
-	jsonName := path.Base(confFile) + "-e.json"
+	jsonName := path.Base(confFile) + ".json"
 	err = saveJSON(path.Join(outDir, jsonName), outputJSON)
 	if err != nil {
 		panic(fmt.Sprintf("save json err %v", err))
