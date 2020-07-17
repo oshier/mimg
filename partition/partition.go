@@ -19,8 +19,8 @@ var step int
 
 func init() {
 	flag.IntVar(&step, "step", 3, fmt.Sprintf("step value for partition"))
-	flag.StringVar(&confFile, "c", "./", fmt.Sprintf("config dir "))
-	flag.StringVar(&srcDir, "s", "./", fmt.Sprintf("srcfile dir "))
+	flag.StringVar(&confFile, "c", "./", fmt.Sprintf("config file"))
+	flag.StringVar(&srcDir, "s", "./", fmt.Sprintf("src file dir "))
 	flag.StringVar(&outDir, "o", "./out", fmt.Sprintf("output dir"))
 	flag.Parse()
 
@@ -137,8 +137,13 @@ func main() {
 		src := img.NewImg(points)
 
 		bounds := src.Boundary()
-		srcLeft := srcPoint.X - bounds.Dx()/2
-		srcTop := srcPoint.Y - bounds.Dy()/2
+		srcLeft := srcPoint.X - bounds.Dx() * 10 / 2
+		srcTop := srcPoint.Y - bounds.Dy() * 10 / 2
+
+		//fmt.Printf("src df:%v %v-%v\n", srcName, bounds.Dx(), bounds.Dy())
+		//fmt.Printf("src bound:%v %v-%v\n", srcName, bounds.Min, bounds.Max)
+		//fmt.Printf("src point:%v %v-%v\n", srcName, srcPoint.X, srcPoint.Y)
+		//fmt.Printf("src file:%v %v-%v\n", srcName, srcLeft, srcTop)
 
 		// 0, 840
 		subRegions := src.SplitPoints(step)
@@ -151,8 +156,10 @@ func main() {
 				panic(fmt.Sprintf("%v-%v %v-%v", idx, imgName, n, err))
 			}
 
-			pos := imgData.Pos()
-			outputJSON[itemName] = fmt.Sprintf("%d,%d", srcLeft+pos.X, srcTop+pos.Y)
+			bound := imgData.Boundary()
+			x := (bound.Min.X + bound.Max.X) * 10 / 2
+			y := (bound.Min.Y + bound.Max.Y) * 10 / 2
+			outputJSON[itemName] = fmt.Sprintf("%d,%d", srcLeft+x, srcTop+y)
 		}
 	}
 
